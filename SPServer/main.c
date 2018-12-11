@@ -20,6 +20,7 @@
 #include <time.h>
 #include <fcntl.h>
 #include <arpa/inet.h>
+#include <sys/ioctl.h>
 
 #define PORT 2020
 #define UPLOADPORT 8080
@@ -195,26 +196,30 @@ void* uploadThread(){
 void* uploadTask(void* sock){
     int sockfd = *(int*) sock;
     
-    printf("Reading Picture Size\n");
-    int size;
-    read(sockfd, &size, sizeof(int));
-    
     //Read Picture Byte Array
     printf("Reading Picture Byte Array\n");
     char p_array[10270];
-    FILE *image = fopen("c1.txt", "w");
+    int image = open("cs1.png", O_CREAT | O_RDWR | S_IRUSR | S_IWUSR);
     ssize_t nb = read(sockfd, p_array, 10270);
-    while (nb >= 0) {
-        fwrite(p_array, 1, nb, image);
-        nb = recv(sockfd, p_array, 10270, O_NONBLOCK);
-        if (nb <= 0){
-            perror("recv file");
+    while (nb > 0) {
+        write(image, p_array, nb);
+        printf(" will send ");
+        int count;
+        ioctl(sockfd, FIONREAD,&count);
+        if (count <= 0){
             break;
         }
+        nb = recv(sockfd, p_array, nb, 0);
+        if (nb <= 0){
+            perror("\nrecv file");
+            break;
+        }
+        printf(" still running ");
     }
-    fclose(image);
+    printf(" stopped running ");
+    close(image);
     
-    write(sockfd, "/Users/umer/Library/Developer/Xcode/DerivedData/SPServer-eqhyfarpzcbgiahaqfpsytudoiaj/Build/Products/Debug/c1.png", sizeof("/Users/umer/Library/Developer/Xcode/DerivedData/SPServer-eqhyfarpzcbgiahaqfpsytudoiaj/Build/Products/Debug/c1.png"));
+    write(sockfd, "/Users/umer/Library/Developer/Xcode/DerivedData/SPServer-eqhyfarpzcbgiahaqfpsytudoiaj/Build/Products/Debug/c1.png", sizeof("/Users/umer/Library/Developer/Xcode/DerivedData/SPServer-eqhyfarpzcbgiahaqfpsytudoiaj/Build/Products/Debug/cs1.png"));
     close(sockfd);
     
     pthread_exit(NULL);
